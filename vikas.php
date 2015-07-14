@@ -11,7 +11,8 @@ include_once("config.php");
     $result_array[$i] = $row['cid'];
        $count++;
 	} 
-	
+	unset($result);
+	mysqli_close($con);
 	// declare variables 
 	$y=0;
 	$z=0;
@@ -24,18 +25,17 @@ include_once("config.php");
 	
 while($y <= $count)										
 {
-	$z = $y;
-	                                            //initialize curl and made 50 different channel
+	             //initialize curl and made 50 different channel
 				$mh = curl_multi_init();
 						for($j=0;$j<100;$j++)				
 						{
 							$ch[$j] = curl_init();								//initialze curl
-							curl_setopt($ch[$j], CURLOPT_URL, "https://www.googleapis.com/youtube/v3/subscriptions?part=snippet,id,contentDetails&fields=nextPageToken,items(id,snippet(publishedAt,resourceId(channelId),channelId))&channelId=".$result_array[$z]."&maxResults=50&key=AIzaSyAi5EGrpxTLFuADJ2jqut5ftAsfKG-VPVI");
+							curl_setopt($ch[$j], CURLOPT_URL, "https://www.googleapis.com/youtube/v3/subscriptions?part=snippet,id,contentDetails&fields=nextPageToken,items(id,snippet(publishedAt,resourceId(channelId),channelId))&channelId=".$result_array[$y]."&maxResults=50&key=AIzaSyAi5EGrpxTLFuADJ2jqut5ftAsfKG-VPVI");
 							curl_setopt($ch[$j], CURLOPT_RETURNTRANSFER,1);			//	CURLOPT_RETURNTRANSFER return the content of channel	
 							curl_setopt($ch[$j], CURLOPT_HEADER, false);
 							
 							curl_multi_add_handle($mh, $ch[$j]);					//add all channel in multichannel
-							$z++;
+							$y++;
 													
 						}
 						
@@ -53,7 +53,7 @@ while($y <= $count)
 									   $k=0;
 										$data[$j]=curl_multi_getcontent($ch[$j]);
 										$obj = json_decode($data[$j]);				//convert the json text into object and stored in an object
-										if(isset($obj->item))
+										if(isset($obj->items))
 										{			
 									       $result= count($obj->items);                  //count total number of element (i.e. item)in json
 										   $file = fopen("test7.txt","a+");			//create and open file in append mod
@@ -67,9 +67,8 @@ while($y <= $count)
 													$result--;	
 												}
 												fclose($file);								//close file
-																										
-												$token=$obj->nextPageToken;													
-												if( $token )     //check whether any nextPageToken or not if yes then store in a array i.e. nextToken
+																								
+												if(isset($obj->nextPageToken))     //check whether any nextPageToken or not if yes then store in a array i.e. nextToken
 												{									 
 												  $nextToken[$x]= $obj->nextPageToken;
 												  $index[$x] = $j;
@@ -80,14 +79,14 @@ while($y <= $count)
 										 }
 										curl_multi_remove_handle($mh, $ch[$j]);     //remove all chanel handle
 								 } //End of while loop
-										
+								curl_multi_close($mh);		
 							  if($x > 0)     //check whether any nextPageToken or not if yes then store in a array called nextToken
 							  {			            			
 								 goto nextpage;
 							  }	
 											
-curl_multi_close($mh); 
-$y = $z;			
+ 
+			
 		// herewe do process again till if there  exist nextPageToken 							
 			nextpage:	
 				{			$p=0;				
@@ -138,31 +137,27 @@ $y = $z;
 											  }
 											  fclose($file);								//close file
 																										
-											  $token=$obj->nextPageToken;	
-											  if( $token )     //check whether any nextPageToken or not if yes then store in a array i.e. nextToken
+											  if(isset($obj->nextPageToken) )     //check whether any nextPageToken or not if yes then store in a array i.e. nextToken
 											  {																						 
 												$nextToken[$x]= $obj->nextPageToken;
 												$index[$x] = $j;
 											    $x++;
-										        echo $token."<br>";		 
+										        
 											   }		//end if condition	 
 										}	
 																						   
 									} 
 								curl_multi_remove_handle($mh, $ch[$j]);  			 //remove all chanel handle
-	
+								curl_multi_close($mh);
 							if($x > 0)     //check whether any nextPageToken or not if yes then store in a array called nextToken
 							{		
 								  //echo "<br>";	            			
 								 goto nextpage;
 							 }	
 						
-						$y = $z;	
-			}   
+					}   
 	
-	
-	curl_multi_close($mh); 
-	
+		
 }
 
 ?>
